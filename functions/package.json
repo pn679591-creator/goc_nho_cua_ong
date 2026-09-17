@@ -1,0 +1,16 @@
+{
+  "name": "goc-nho-cua-ong-functions",
+  "description": "Cloud Functions cho chế độ SECURITY_MODE = \"secure\" (tuỳ chọn — site chạy đầy đủ ở chế độ \"simple\" mà không cần thư mục này).",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "serve": "firebase emulators:start --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "private": true
+}
