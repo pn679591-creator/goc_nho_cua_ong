@@ -1,4 +1,4 @@
-import { auth, fbAuth, db, fbStore } from './firebase.js';
+import { auth, fbAuth, db, fbStore, isFirebaseReady } from './firebase.js';
 import { OWNER_UIDS } from '../config/app-config.js';
 import { bus } from './events.js';
 
@@ -31,6 +31,7 @@ export function hasPerm(group) {
 
 /** Đăng nhập ẩn danh cho khách chưa đăng nhập — cần cho các quy tắc bảo mật dựa vào request.auth. */
 export async function ensureSignedIn() {
+  if (!isFirebaseReady()) throw new Error('Firebase chưa sẵn sàng (không tải được SDK).');
   if (auth.currentUser) return auth.currentUser;
   const cred = await signInAnonymously(auth);
   return cred.user;
@@ -82,15 +83,25 @@ export function onAuthReady(fn) {
   else readyListeners.push(fn);
 }
 
-onAuthStateChanged(auth, async (user) => {
-  currentUser = user;
-  if (user) {
-    await ensureUserDoc(user);
-    currentRoles = await loadRoles(user.uid);
-  } else {
-    currentRoles = null;
-  }
+if (isFirebaseReady()) {
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    if (user) {
+      await ensureUserDoc(user);
+      currentRoles = await loadRoles(user.uid);
+    } else {
+      currentRoles = null;
+    }
+    authReady = true;
+    bus.emit('auth:changed', { user, roles: currentRoles });
+    while (readyListeners.length) readyListeners.shift()(user);
+  });
+} else {
+  // Firebase không tải được — vẫn "giải phóng" onAuthReady(...) với user =
+  // null để phần giao diện không phụ thuộc dữ liệu (nav, router...) chạy
+  // bình thường thay vì treo mãi chờ một sự kiện auth không bao giờ tới.
   authReady = true;
-  bus.emit('auth:changed', { user, roles: currentRoles });
-  while (readyListeners.length) readyListeners.shift()(user);
-});
+  queueMicrotask(() => {
+    while (readyListeners.length) readyListeners.shift()(null);
+  });
+}

@@ -67,7 +67,11 @@ async function renderCurrentRoute() {
   currentScope = createLifecycleScope(path);
   outlet.replaceChildren();
   currentPage = pageModule.default || pageModule;
-  await currentPage.mount(outlet, { params, query, scope: currentScope, path });
+  try {
+    await currentPage.mount(outlet, { params, query, scope: currentScope, path });
+  } catch (err) {
+    console.error(`[router] Lỗi khi hiển thị trang "${path}"`, err);
+  }
   outlet.removeAttribute('aria-busy');
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }

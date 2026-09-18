@@ -1,6 +1,6 @@
 // Lớp truy cập dữ liệu Firestore dùng chung. Tên collection và tên field
 // giữ ổn định vì có thể đã có dữ liệu người chơi thật.
-import { db, fbStore } from './firebase.js';
+import { db, fbStore, isFirebaseReady } from './firebase.js';
 import { getCurrentUser, isOwner } from './auth.js';
 import { DEFAULT_ECONOMY } from '../config/economy.js';
 import { GAME_BALANCE } from '../config/game-balance.js';
@@ -20,7 +20,7 @@ let balanceListenerStarted = false;
 const balanceSubscribers = new Set();
 
 function startBalanceListener() {
-  if (balanceListenerStarted) return;
+  if (balanceListenerStarted || !isFirebaseReady()) return;
   balanceListenerStarted = true;
   onSnapshot(doc(db, 'settings', 'balance'), (snap) => {
     balanceCache = snap.exists() ? snap.data() : {};
@@ -67,7 +67,7 @@ let flagsListenerStarted = false;
 const flagsSubscribers = new Set();
 
 function startFlagsListener() {
-  if (flagsListenerStarted) return;
+  if (flagsListenerStarted || !isFirebaseReady()) return;
   flagsListenerStarted = true;
   onSnapshot(doc(db, 'settings', 'public'), (snap) => {
     flagsCache = snap.exists() ? (snap.data().flags || {}) : {};
@@ -90,6 +90,7 @@ export function getFlags() {
 
 // ---------- Ví & năng lượng ----------
 export function subscribeUserDoc(uid, fn) {
+  if (!isFirebaseReady()) return () => {};
   return onSnapshot(doc(db, 'users', uid), (snap) => fn(snap.exists() ? snap.data() : null));
 }
 
@@ -239,6 +240,7 @@ export async function claimGameReward(runId) {
 
 // ---------- Generic registry helpers (dùng chung cho các trang & Owner Console) ----------
 export function subscribeCollection(name, fn, { orderByField, whereClauses = [] } = {}) {
+  if (!isFirebaseReady()) { fn([]); return () => {}; }
   let q = collection(db, name);
   const clauses = [...whereClauses];
   if (orderByField) clauses.push(orderBy(orderByField));
