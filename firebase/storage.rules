@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Quy tắc Firebase Storage. Ảnh công khai (bot cover, vật phẩm, Tarot...)
+// nên được đóng gói sẵn trong ./assets/ của repo (GitHub Pages phục vụ
+// trực tiếp, nhanh và miễn phí băng thông Firebase). Storage chủ yếu dùng
+// cho: (1) ảnh chủ nhà tải lên qua Asset Manager, (2) ảnh 18+ riêng tư sau
+// Rèm Nhung — KHÔNG BAO GIỜ được đưa vào repository công khai.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isSignedIn() && request.auth.uid in [
+        // 'DÁN_UID_CHỦ_NHÀ_VÀO_ĐÂY'
+      ];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && firestore.exists(/databases/(default)/documents/roles/$(request.auth.uid));
+    }
+
+    function isOwnerOrAdmin() {
+      return isOwner() || isAdmin();
+    }
+
+    function hasVelvetAccess() {
+      return isSignedIn() &&
+        firestore.exists(/databases/(default)/documents/velvetAccess/$(request.auth.uid));
+    }
+
+    // Ảnh do chủ nhà/quản trị viên tải lên qua Owner Console → Asset Manager.
+    match /assets-uploaded/{fileName} {
+      allow read: if true;
+      allow write: if isOwnerOrAdmin() &&
+        request.resource.size < 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Ảnh riêng tư 18+ sau Rèm Nhung — chỉ người đã được cấp velvetAccess
+    // (hoặc chủ nhà) mới đọc được; chỉ chủ nhà mới tải lên.
+    match /velvet-private/{fileName} {
+      allow read: if hasVelvetAccess() || isOwner();
+      allow write: if isOwner() &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Ảnh đại diện người dùng tự tải lên (nếu tính năng này được bật).
+    match /avatars/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

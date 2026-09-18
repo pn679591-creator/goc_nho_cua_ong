@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Góc Nhỏ Của Ong</title>
+<meta name="description" content="Góc Nhỏ Của Ong — nông trại, trò chơi, Tarot và những người bạn Ong dễ thương." />
+<meta name="theme-color" content="#ffb703" />
+<link rel="icon" href="./assets/images/favicon.svg" type="image/svg+xml" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="stylesheet" href="./css/base.css?v=1.0.0" />
+<link rel="stylesheet" href="./css/theme.css?v=1.0.0" />
+<link rel="stylesheet" href="./css/layout.css?v=1.0.0" />
+<link rel="stylesheet" href="./css/components.css?v=1.0.0" />
+<link rel="stylesheet" href="./css/games.css?v=1.0.0" />
+</head>
+<body>
+<a class="skip-link" href="#app-outlet">Bỏ qua tới nội dung chính</a>
+
+<header class="site-header">
+  <button id="menu-toggle" class="menu-toggle" aria-label="Mở menu">☰</button>
+  <a href="#/" class="brand">
+    <img src="./assets/images/logo.svg" alt="" width="32" height="32" class="brand__logo" />
+    <span class="brand__name">Góc Nhỏ Của Ong</span>
+  </a>
+  <nav id="main-nav" class="main-nav" aria-label="Điều hướng chính"></nav>
+  <div class="header-right">
+    <div id="wallet-display" class="wallet-display" aria-label="Số dư"></div>
+    <a id="admin-link" href="#/quan-tri" class="btn btn--ghost btn--small" style="display:none">🛠️ Quản trị</a>
+  </div>
+</header>
+
+<div id="emergency-banner" class="emergency-banner" style="display:none" role="status"></div>
+
+<main id="app-outlet" class="app-outlet" aria-busy="false"></main>
+
+<footer class="site-footer">
+  <p>Góc Nhỏ Của Ong <span id="app-version"></span> · Được nuôi dưỡng bằng 🌻 và 🍯</p>
+</footer>
+
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+<script type="module" src="./js/app.js?v=1.0.0"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

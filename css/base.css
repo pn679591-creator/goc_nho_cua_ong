@@ -1,0 +1,42 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body.no-scroll { overflow: hidden; }
+
+h1, h2, h3, h4 { margin: 0 0 0.5em; line-height: 1.25; }
+p { margin: 0 0 0.75em; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+/* Ảnh cân đối: không bao giờ tràn màn hình hoặc kéo méo. */
+img, video, canvas { max-width: 100%; height: auto; display: block; }
+
+.bimg--cover { object-fit: cover; }
+.bimg--contain { object-fit: contain; }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: #fff;
+  padding: 8px 16px;
+  z-index: 1000;
+}
+.skip-link:focus { left: 8px; top: 8px; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

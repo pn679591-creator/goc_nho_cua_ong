@@ -1,0 +1,154 @@
+/* ---------- Header ---------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--header-h);
+  padding: 0 var(--space-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 22px;
+  padding: var(--space-2);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.brand__logo { width: 32px; height: 32px; }
+.main-nav {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+  overflow-x: auto;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.nav-link:hover { background: var(--surface-muted); }
+.nav-link--active { background: var(--primary); color: #3d2b1f; }
+.header-right { display: flex; align-items: center; gap: var(--space-3); }
+.wallet-display { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.wallet-chip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface-muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emergency-banner {
+  background: #fff1c2;
+  color: #7a4b00;
+  text-align: center;
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---------- Layout chính ---------- */
+.app-outlet {
+  min-height: calc(100vh - var(--header-h) - 80px);
+  padding: var(--space-4);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+.app-outlet[aria-busy="true"] { opacity: 0.6; }
+
+.site-footer {
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- Breakpoints dùng chung ----------
+   phone < 600px, tablet 600–1023px, laptop 1024–1439px, desktop ≥ 1440px */
+.grid { display: grid; gap: var(--space-4); }
+
+.grid--bots { grid-template-columns: repeat(2, 1fr); }
+.grid--games { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 600px) {
+  .grid--bots { grid-template-columns: repeat(3, 1fr); }
+  .grid--games { grid-template-columns: repeat(3, 1fr); }
+  .menu-toggle { display: none; }
+}
+@media (min-width: 1024px) {
+  .grid--bots { grid-template-columns: repeat(4, 1fr); }
+  .grid--games { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1440px) {
+  .grid--bots { grid-template-columns: repeat(5, 1fr); }
+  .grid--games { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .menu-toggle { display: block; }
+  .main-nav {
+    position: fixed;
+    inset: var(--header-h) 0 0 0;
+    background: var(--surface);
+    flex-direction: column;
+    padding: var(--space-4);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+  }
+  body.nav-open .main-nav { transform: translateX(0); }
+  .nav-link { padding: var(--space-3); font-size: 16px; }
+}
+
+/* ---------- Khung ảnh cân đối ---------- */
+.frame { position: relative; overflow: hidden; border-radius: var(--radius-md); background: var(--surface-muted); }
+.frame > img, .frame > canvas { width: 100%; height: 100%; }
+
+.frame--bot-cover { aspect-ratio: 4 / 5; }
+.frame--bot-cover img { object-fit: cover; object-position: center 20%; }
+
+.frame--cartridge { aspect-ratio: 1 / 1; }
+.frame--cartridge img { object-fit: contain; }
+
+.frame--avatar { aspect-ratio: 1 / 1; border-radius: 50%; width: 72px; height: 72px; }
+@media (min-width: 600px) { .frame--avatar { width: 88px; height: 88px; } }
+@media (min-width: 1024px) { .frame--avatar { width: 96px; height: 96px; } }
+@media (min-width: 1440px) { .frame--avatar { width: 104px; height: 104px; } }
+.frame--avatar img { object-fit: cover; object-position: center 20%; }
+
+.frame--mascot { width: 120px; aspect-ratio: 1/1; margin: 0 auto; }
+@media (min-width: 600px) { .frame--mascot { width: 150px; } }
+@media (min-width: 1024px) { .frame--mascot { width: 180px; } }
+@media (min-width: 1440px) { .frame--mascot { width: 200px; } }
+.frame--mascot img { object-fit: contain; }
+
+.frame--banner { aspect-ratio: 16/9; max-height: 38vh; }
+.frame--banner img { object-fit: cover; }
+
+.frame--tarot { aspect-ratio: 2/3; width: min(70vw, 260px); margin: 0 auto; }
+@media (min-width: 600px) { .frame--tarot { width: 300px; } }
+@media (min-width: 1024px) { .frame--tarot { width: 340px; } }
+@media (min-width: 1440px) { .frame--tarot { width: 360px; } }
+.frame--tarot img { object-fit: contain; }
+
+.frame--modal-img { max-width: 90vw; max-height: 70vh; }
+.frame--modal-img img { object-fit: contain; max-width: 90vw; max-height: 70vh; }

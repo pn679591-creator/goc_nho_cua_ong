@@ -1,0 +1,30 @@
+.admin-shell { display: flex; gap: var(--space-4); align-items: flex-start; }
+.admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-3));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(100vh - var(--header-h) - var(--space-5));
+  overflow-y: auto;
+}
+.admin-nav-btn {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.admin-nav-btn:hover { background: var(--surface-muted); }
+.admin-nav-btn--active { background: var(--primary); color: #3d2b1f; }
+.admin-content { flex: 1; min-width: 0; }
+
+@media (max-width: 899px) {
+  .admin-shell { flex-direction: column; }
+  .admin-sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; max-height: none; }
+  .admin-nav-btn { white-space: nowrap; }
+}

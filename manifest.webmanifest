@@ -1,0 +1,14 @@
+{
+  "name": "Góc Nhỏ Của Ong",
+  "short_name": "Góc Nhỏ Của Ong",
+  "description": "Nông trại, trò chơi, Tarot và những người bạn Ong dễ thương.",
+  "start_url": "./index.html#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff8e7",
+  "theme_color": "#ffb703",
+  "lang": "vi",
+  "icons": [
+    { "src": "./assets/images/icon.svg", "sizes": "192x192 512x512", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,197 @@
+rules_version = '2';
+
+// Quy tắc bảo mật Firestore cho "Góc Nhỏ Của Ong".
+//
+// Đây là site TĨNH (không có server riêng), nên MỌI bảo vệ thật sự nằm ở
+// file này (và storage.rules), không phải ở việc ẩn nút trên giao diện.
+//
+// Ở SECURITY_MODE = "simple" (xem js/config/app-config.js), phần thưởng
+// được cấp bằng transaction phía client, vì vậy các quy tắc dưới đây kiểm
+// tra: (1) chỉ chủ sở hữu mới ghi được dữ liệu của chính mình, (2) chỉ
+// những field được liệt kê mới được thay đổi, (3) số tiền cộng thêm mỗi
+// lần ghi bị giới hạn ở một trần hợp lý (chặn gian lận rõ ràng), (4) nội
+// dung đăng ký (registries), cấu hình, cờ khẩn cấp chỉ chủ nhà mới sửa
+// được. Đây là mức bảo vệ "hợp lý cho gói miễn phí" — nếu cần chống gian
+// lận tuyệt đối, hãy bật SECURITY_MODE = "secure" và dùng Cloud Functions
+// trong /functions (khi đó các quy tắc dưới càng thêm một lớp phòng thủ).
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isOwner() {
+  // Danh sách UID chủ nhà — PHẢI khớp OWNER_UIDS trong js/config/app-config.js.
+  return isSignedIn() && request.auth.uid in [
+    // 'DÁN_UID_CHỦ_NHÀ_VÀO_ĐÂY'
+  ];
+}
+
+function isAdmin() {
+  return isSignedIn() && exists(/databases/$(database)/documents/roles/$(request.auth.uid));
+}
+
+function isOwnerOrAdmin() {
+  return isOwner() || isAdmin();
+}
+
+function isSelf(uid) {
+  return isSignedIn() && request.auth.uid == uid;
+}
+
+function onlyChangedKeys(allowed) {
+  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+}
+
+function withinDelta(field, maxDelta) {
+  let before = (field in resource.data) ? resource.data[field] : 0;
+  let after = (field in request.resource.data) ? request.resource.data[field] : 0;
+  return after >= before && after - before <= maxDelta;
+}
+
+match /databases/{database}/documents {
+
+  // ---------------- Users ----------------
+  match /users/{uid} {
+    allow read: if isSignedIn();
+    allow create: if isSelf(uid);
+    allow update: if isOwnerOrAdmin() || (
+      isSelf(uid) &&
+      onlyChangedKeys(['displayName', 'photoURL', 'wallet', 'exp', 'level', 'energyUpdatedAt', 'locked']) &&
+      // Trần "hợp lý" cho một lần ghi — chặn cộng số khổng lồ một phát.
+      withinDelta('wallet.coin', 5000) &&
+      withinDelta('wallet.gem', 1000) &&
+      withinDelta('wallet.ticket', 50) &&
+      withinDelta('exp', 2000)
+    );
+    allow delete: if isOwner();
+
+    match /inventory/{itemId} {
+      allow read: if isSelf(uid) || isOwnerOrAdmin();
+      allow write: if isSelf(uid) || isOwnerOrAdmin();
+    }
+    match /dailyStats/{dateKey} {
+      allow read: if isSelf(uid) || isOwnerOrAdmin();
+      allow write: if isSelf(uid) || isOwnerOrAdmin();
+    }
+    match /honeyLedger/{entryId} {
+      allow read: if isSelf(uid) || isOwnerOrAdmin();
+      allow create: if isSelf(uid) || isOwnerOrAdmin();
+      allow update, delete: if isOwner();
+    }
+  }
+
+  // ---------------- Vai trò (chỉ chủ nhà ghi) ----------------
+  match /roles/{uid} {
+    allow read: if isSignedIn();
+    allow write: if isOwner();
+  }
+
+  // ---------------- Cấu hình chung ----------------
+  match /settings/balance {
+    allow read: if true;
+    allow write: if isOwnerOrAdmin();
+  }
+  match /settings/public {
+    allow read: if true;
+    allow write: if isOwnerOrAdmin();
+  }
+  match /settings/private {
+    // KHÔNG client nào được đọc — chỉ dùng qua get() trong rule velvetAccess bên dưới.
+    allow read: if false;
+    allow write: if isOwner();
+  }
+
+  // ---------------- Rèm Nhung (Velvet Curtain) ----------------
+  match /velvetAttempts/{uid} {
+    allow read: if isSelf(uid) || isOwner();
+    allow create: if isSelf(uid);
+    allow update, delete: if isOwner();
+  }
+  match /velvetAccess/{uid} {
+    allow read: if isSelf(uid) || isOwner();
+    allow create: if isSelf(uid) &&
+      get(/databases/$(database)/documents/velvetAttempts/$(uid)).data.hash ==
+      get(/databases/$(database)/documents/settings/private).data.passwordHash &&
+      request.resource.data.sessionNumber ==
+      get(/databases/$(database)/documents/settings/private).data.sessionNumber;
+    allow update, delete: if isOwner();
+  }
+
+  // ---------------- Nông trại ----------------
+  match /farms/{uid} {
+    allow read: if isSelf(uid) || isOwnerOrAdmin();
+    allow create: if isSelf(uid);
+    allow update: if isOwnerOrAdmin() || (isSelf(uid) && onlyChangedKeys(['plots']));
+    allow delete: if isOwner();
+  }
+
+  // ---------------- Lượt chơi game (thưởng chỉ nhận đúng 1 lần) ----------------
+  match /gameRuns/{runId} {
+    allow read: if isSignedIn();
+    allow create: if isSelf(request.resource.data.uid) &&
+      request.resource.data.status == 'playing' &&
+      request.resource.data.startedAt == request.time;
+    // Đánh dấu "finished": chỉ chủ lượt chơi, chỉ chuyển playing -> finished.
+    allow update: if isOwnerOrAdmin() || (
+      isSelf(resource.data.uid) &&
+      resource.data.status == 'playing' &&
+      request.resource.data.status == 'finished' &&
+      onlyChangedKeys(['status', 'score', 'stars', 'durationMs', 'finishedAt'])
+    ) || (
+      // Nhận thưởng: finished -> claimed, không được claim 2 lần.
+      isSelf(resource.data.uid) &&
+      resource.data.status == 'finished' &&
+      request.resource.data.status == 'claimed' &&
+      onlyChangedKeys(['status', 'claimedAt', 'reward'])
+    );
+    allow delete: if isOwner();
+  }
+
+  // ---------------- Tarot: mỗi lượt rút = 1 document ----------------
+  match /tarotReadings/{readingId} {
+    allow read: if isSignedIn();
+    allow create: if isSelf(request.resource.data.uid) &&
+      request.resource.data.drawnAt == request.time &&
+      (request.resource.data.kind != 'daily' || !exists(/databases/$(database)/documents/tarotReadings/$(readingId)));
+    allow update, delete: if isOwner();
+  }
+
+  // ---------------- Nhật ký quản trị ----------------
+  match /auditLogs/{logId} {
+    allow read: if isOwnerOrAdmin();
+    allow create: if isOwnerOrAdmin() && request.resource.data.timestamp == request.time;
+    allow update, delete: if isOwner();
+  }
+
+  // ---------------- Kho hình ảnh ----------------
+  match /assets/{assetId} {
+    allow read: if true;
+    allow write: if isOwnerOrAdmin();
+  }
+
+  // ---------------- Registries nội dung (chỉ chủ nhà/admin sửa) ----------------
+  match /games/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /crops/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /seeds/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /shopItems/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /tarotDeck/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /events/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /quests/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /achievements/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /bots/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /currencies/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+
+  // ---------------- Bảng xếp hạng ----------------
+  match /leaderboards/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+  match /leaderboardArchives/{id} { allow read: if true; allow write: if isOwnerOrAdmin(); }
+
+  // ---------------- Chế độ thử (sandbox — không đụng ví thật) ----------------
+  match /testSandbox/{uid} {
+    allow read, write: if isSelf(uid) || isOwnerOrAdmin();
+  }
+
+  // Mặc định: từ chối tất cả những gì chưa được liệt kê ở trên.
+  match /{document=**} {
+    allow read, write: if false;
+  }
+}
