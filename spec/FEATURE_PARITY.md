@@ -79,9 +79,9 @@ TITLE→READY→PLAYING⇄PAUSED→GAME_OVER→RESULT→REWARD, HUD, pause khi �
 | Đua Hamster (vs AI) | `js/games/dua-hamster/game.js` | ✅ |
 | Đố Vui Nhà Ong | `js/games/do-vui/game.js` | ✅ |
 
-Cooldown 15s giữa các lượt chơi có thưởng cùng game: 🟡 chưa gate ở `game-shell.js` (mới có
-giới hạn 25 lượt/ngày qua `dailyStats`) — dễ bổ sung bằng cách đọc `finishedAt` lượt gần
-nhất trong `gameRuns`.
+Cooldown 15s giữa các lượt chơi có thưởng cùng game: ✅ (`js/games/shared/game-shell.js` đọc
+`startedAt` của lượt gần nhất qua `getLastRunStartedAt()` trước khi cho bắt đầu lượt mới),
+cộng với giới hạn 25 lượt/ngày qua `dailyStats`.
 
 ## Bảo mật (Firebase)
 | Mục | Trạng thái |

@@ -117,6 +117,28 @@ export function dailyStatsRef(uid, dateKey = todayVietnamKey()) {
   return doc(db, 'users', uid, 'dailyStats', dateKey);
 }
 
+/** Trả về mốc thời gian (ms) của lượt chơi có thưởng gần nhất, dùng để chặn cooldown giữa 2 lượt cùng game. */
+export async function getLastRunStartedAt(uid, gameId) {
+  if (!isFirebaseReady()) return null;
+  try {
+    const q = query(
+      collection(db, 'gameRuns'),
+      where('uid', '==', uid),
+      where('gameId', '==', gameId),
+      where('test', '==', false),
+      orderBy('startedAt', 'desc'),
+      limit(1),
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const data = snap.docs[0].data();
+    return data.startedAt?.toMillis ? data.startedAt.toMillis() : null;
+  } catch (err) {
+    console.error('[db] không đọc được lượt chơi gần nhất', err);
+    return null;
+  }
+}
+
 // ---------- Vòng đời một lượt chơi game (đảm bảo thưởng chỉ nhận đúng một lần) ----------
 export async function startGameRun({ gameId, difficulty, test = false }) {
   const user = getCurrentUser();

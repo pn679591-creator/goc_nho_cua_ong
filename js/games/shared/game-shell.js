@@ -13,7 +13,7 @@
 //   listener/timer/raf/audio được dọn sạch trong destroy().
 import { h, formatNumber } from '../../core/ui.js';
 import { showToast } from '../../core/toast.js';
-import { getGameBalanceSettings, getEconomySettings, computeCurrentEnergy, startGameRun, finishGameRun, claimGameReward, subscribeUserDoc } from '../../core/db.js';
+import { getGameBalanceSettings, getEconomySettings, computeCurrentEnergy, startGameRun, finishGameRun, claimGameReward, subscribeUserDoc, getLastRunStartedAt } from '../../core/db.js';
 import { getCurrentUser, isOwner } from '../../core/auth.js';
 import { DIFFICULTIES, DIFFICULTY_LABELS } from '../../config/economy.js';
 
@@ -117,6 +117,19 @@ export function mountGameShell(container, scope, { gameId, label, createGame }) 
     freePlay = isFreePlay || testMode;
     currentRunId = null;
     if (!freePlay) {
+      const economy = getEconomySettings();
+      const cooldownSeconds = economy.cooldownSecondsSameGame ?? 15;
+      const user = getCurrentUser();
+      if (cooldownSeconds > 0 && user) {
+        const lastStartedAt = await getLastRunStartedAt(user.uid, gameId);
+        if (lastStartedAt) {
+          const remaining = cooldownSeconds - (Date.now() - lastStartedAt) / 1000;
+          if (remaining > 0) {
+            showToast(`Chờ ${Math.ceil(remaining)} giây nữa để chơi lượt có thưởng tiếp theo nhé.`, { type: 'info' });
+            return;
+          }
+        }
+      }
       try {
         currentRunId = await startGameRun({ gameId, difficulty, test: testMode });
       } catch (err) {
